@@ -265,40 +265,64 @@ with tab_perf:
     Z_grid = np.array(Z_grid)
     C_grid = np.array(C_grid)
 
-    title_mode = "Mean Camber Line" if use_camber else "Lofted Blended 3-D Blade"
+    title_mode = f"{blades}-Blade Rotor ({'Mean Camber Line' if use_camber else 'Lofted Blended 3-D Blade'})"
     af_desc = " → ".join(af_names)
 
-    fig_3d = go.Figure(data=[go.Surface(
-        x=Y_grid, y=X_grid, z=Z_grid, 
-        surfacecolor=C_grid,
-        colorscale=[[0, 'rgb(38,178,228)'], [1, 'rgb(255,64,64)']],
-        showscale=False,
-        cmin=0, cmax=1,
-        lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0)
-    )])
+    surfaces = []
+    for k in range(blades):
+        psi = k * (2 * np.pi / blades)
+        # Apply Z-axis rotation to duplicate blades around the hub
+        rot_X = Y_grid * np.cos(psi) - X_grid * np.sin(psi)
+        rot_Y = Y_grid * np.sin(psi) + X_grid * np.cos(psi)
+        
+        surfaces.append(go.Surface(
+            x=rot_X, y=rot_Y, z=Z_grid, 
+            surfacecolor=C_grid,
+            colorscale=[[0, 'rgb(38,178,228)'], [1, 'rgb(255,64,64)']],
+            showscale=False,
+            cmin=0, cmax=1,
+            lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0)
+        ))
 
+    fig_3d = go.Figure(data=surfaces)
     max_c = max(c_root, c_root * taper)
+    
+    # Render a small gray hub cylinder in the center
+    hub_r = max(0.015, r_rc * 0.9)
+    theta = np.linspace(0, 2*np.pi, 24)
+    z_hub = np.linspace(-max_c*0.5, max_c*0.5, 2)
+    TH, Z_H = np.meshgrid(theta, z_hub)
+    X_H = hub_r * np.cos(TH)
+    Y_H = hub_r * np.sin(TH)
+    
+    fig_3d.add_trace(go.Surface(
+        x=X_H, y=Y_H, z=Z_H,
+        colorscale=[[0, 'rgb(120,120,120)'], [1, 'rgb(120,120,120)']],
+        showscale=False,
+        lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0)
+    ))
 
     camera = dict(
         up=dict(x=0, y=0, z=1),
         center=dict(x=0, y=0, z=0),
         eye=dict(
-            x=2.0 * np.cos(np.radians(st.session_state["azim"])) * np.cos(np.radians(st.session_state["elev"])),
-            y=2.0 * np.sin(np.radians(st.session_state["azim"])) * np.cos(np.radians(st.session_state["elev"])),
-            z=2.0 * np.sin(np.radians(st.session_state["elev"]))
+            x=2.5 * np.cos(np.radians(st.session_state["azim"])) * np.cos(np.radians(st.session_state["elev"])),
+            y=2.5 * np.sin(np.radians(st.session_state["azim"])) * np.cos(np.radians(st.session_state["elev"])),
+            z=2.5 * np.sin(np.radians(st.session_state["elev"]))
         )
     )
 
+    pad = radius + 0.05
     fig_3d.update_layout(
         title=f"{title_mode}<br><sup>{af_desc}</sup>",
         scene=dict(
-            xaxis_title='Radius r [m]',
-            yaxis_title='Advancing x [m]',
+            xaxis_title='X [m]',
+            yaxis_title='Y [m]',
             zaxis_title='Height z [m]',
-            xaxis=dict(range=[0, radius + 0.04]),
-            yaxis=dict(range=[-max_c, max_c]),
-            zaxis=dict(range=[-max_c, max_c]),
-            aspectratio=dict(x=2.5, y=1.0, z=1.0),
+            xaxis=dict(range=[-pad, pad]),
+            yaxis=dict(range=[-pad, pad]),
+            zaxis=dict(range=[-max_c*1.5, max_c*1.5]),
+            aspectratio=dict(x=1.0, y=1.0, z=0.3),
             camera=camera
         ),
         margin=dict(l=0, r=0, b=0, t=60),
