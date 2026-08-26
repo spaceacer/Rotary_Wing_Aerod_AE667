@@ -183,85 +183,123 @@ st.markdown("---")
 # ── residual calculations ─────────────────────────────────────────────────────
 res_ct = bemt_ct - exp_ct_ref
 res_cp = bemt_cp - exp_cp_ref
-res_fm = np.zeros_like(res_ct)
+res_ct_scaled = res_ct * 1e4
+res_cp_scaled = res_cp * 1e5
 valid_fm_pts = (exp_ct_ref > 0) & (exp_fm_ref > 0)
-res_fm[valid_fm_pts] = bemt_fm[valid_fm_pts] - exp_fm_ref[valid_fm_pts]
 
 # ── plots ─────────────────────────────────────────────────────────────────────
-st.subheader("📈  Validation & Residual Analysis Plots")
+st.subheader("📈  Validation & Error Residuals")
 
-fig, axs = plt.subplots(2, 3, figsize=(14, 7.8), gridspec_kw={'height_ratios': [1.15, 0.85]})
+fig, axs = plt.subplots(1, 4, figsize=(16, 3.8), dpi=100)
 
-for ax_row in axs:
-    for ax in ax_row:
-        ax.tick_params(labelsize=8)
-        ax.grid(True, linestyle=":", alpha=0.35, color="gray")
+for ax in axs:
+    ax.tick_params(labelsize=8)
+    ax.grid(True, linestyle=":", alpha=0.4, color="gray")
 
-# [0, 0] CT vs θ₀
-axs[0, 0].plot(exp_theta_deg, exp_ct_ref, "ko", markersize=6.5,
-               label=f"K&H Exp (b={B_kh})", zorder=5)
-axs[0, 0].plot(plot_theta_deg, plot_bemt_ct, "b-", lw=2.2,
-               label=f"BEMT  (b={B_kh})")
-axs[0, 0].set_xlabel("Collective Pitch θ₀ [deg]")
-axs[0, 0].set_ylabel("Thrust Coefficient C_T")
-axs[0, 0].set_title("C_T  vs  θ₀")
-axs[0, 0].legend(fontsize=8)
+# 1. CT vs θ₀
+axs[0].plot(exp_theta_deg, exp_ct_ref, "ko", markersize=5.5, label=f"NACA TN 626 Exp", zorder=5)
+axs[0].plot(plot_theta_deg, plot_bemt_ct, "b-", lw=1.8, label=f"BEMT (b={B_kh})")
+axs[0].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=8.5)
+axs[0].set_ylabel(r"$C_T$", fontsize=8.5)
+axs[0].set_title(rf"$C_T$ vs $\theta$ ($b={B_kh}$)", fontsize=9.5, fontweight="bold")
+axs[0].legend(fontsize=7.5)
 
-# [0, 1] CP vs θ₀
-axs[0, 1].plot(exp_theta_deg, exp_cp_ref, "ks", markersize=6.5,
-               label=f"K&H Exp (b={B_kh})", zorder=5)
-axs[0, 1].plot(plot_theta_deg, plot_bemt_cp, "r-", lw=2.2,
-               label=f"BEMT  (b={B_kh})")
-axs[0, 1].set_xlabel("Collective Pitch θ₀ [deg]")
-axs[0, 1].set_ylabel("Power Coefficient C_P")
-axs[0, 1].set_title("C_P  vs  θ₀")
-axs[0, 1].legend(fontsize=8)
+# 2. CP vs θ₀
+axs[1].plot(exp_theta_deg, exp_cp_ref, "ks", markersize=5.5, label=f"NACA TN 626 Exp", zorder=5)
+axs[1].plot(plot_theta_deg, plot_bemt_cp, "r-", lw=1.8, label=f"BEMT (b={B_kh})")
+axs[1].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=8.5)
+axs[1].set_ylabel(r"$C_P$", fontsize=8.5)
+axs[1].set_title(rf"$C_P$ vs $\theta$ ($b={B_kh}$)", fontsize=9.5, fontweight="bold")
+axs[1].legend(fontsize=7.5)
 
-# [0, 2] FM vs CT
+# 3. FM vs CT
 valid_plot = plot_bemt_ct > 0
-axs[0, 2].plot(exp_ct_ref[valid_fm_pts], exp_fm_ref[valid_fm_pts], "k^", markersize=6.5,
-               label=f"K&H Exp (b={B_kh})", zorder=5)
-axs[0, 2].plot(plot_bemt_ct[valid_plot], plot_bemt_fm[valid_plot], "g-", lw=2.2,
-               label=f"BEMT  (b={B_kh})")
-axs[0, 2].set_xlabel("Thrust Coefficient C_T")
-axs[0, 2].set_ylabel("Figure of Merit (FM)")
-axs[0, 2].set_title("FM  vs  C_T")
-axs[0, 2].set_ylim(0.0, 0.85)
-axs[0, 2].legend(fontsize=8)
+axs[2].plot(exp_ct_ref[valid_fm_pts], exp_fm_ref[valid_fm_pts], "k^", markersize=5.5, label=f"NACA TN 626 Exp", zorder=5)
+axs[2].plot(plot_bemt_ct[valid_plot], plot_bemt_fm[valid_plot], "g-", lw=1.8, label=f"BEMT (b={B_kh})")
+axs[2].set_xlabel(r"Thrust Coefficient $C_T$", fontsize=8.5)
+axs[2].set_ylabel(r"$\mathrm{FM}$", fontsize=8.5)
+axs[2].set_title(rf"$\mathrm{{FM}}$ vs $C_T$ ($b={B_kh}$)", fontsize=9.5, fontweight="bold")
+axs[2].set_ylim(0.0, 0.85)
+axs[2].legend(fontsize=7.5)
 
-# [1, 0] Delta CT Residuals
-axs[1, 0].axhline(0, color="black", linestyle="--", lw=1.0, alpha=0.7)
-axs[1, 0].plot(exp_theta_deg, res_ct, "b-o", markersize=5, lw=1.5,
-               label=r"$\Delta C_T = C_{T,\mathrm{BEMT}} - C_{T,\mathrm{exp}}$")
-axs[1, 0].fill_between(exp_theta_deg, res_ct, 0, color="#4fc3f7", alpha=0.25)
-axs[1, 0].set_xlabel("Collective Pitch θ₀ [deg]")
-axs[1, 0].set_ylabel(r"$\Delta C_T$ Residual")
-axs[1, 0].set_title(r"$C_T$ Residuals ($\Delta C_T$ vs $\theta_0$)")
-axs[1, 0].legend(fontsize=7.5)
+# 4. Combined Residuals (ΔCT x 10^4 and ΔCP x 10^5)
+axs[3].axhline(0, color="gray", linestyle="--", lw=1.0, zorder=1)
+axs[3].plot(exp_theta_deg, res_ct_scaled, "b-o", markersize=4.5, lw=1.5, label=r"$\Delta C_T \times 10^4$")
+axs[3].plot(exp_theta_deg, res_cp_scaled, "r--s", markersize=4.5, lw=1.5, label=r"$\Delta C_P \times 10^5$")
+axs[3].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=8.5)
+axs[3].set_ylabel("Residual Error", fontsize=8.5)
+axs[3].set_title(rf"Residuals $\Delta = \mathrm{{BEMT}} - \mathrm{{Exp}}$ ($b={B_kh}$)", fontsize=9.5, fontweight="bold")
+axs[3].legend(loc="upper left", fontsize=7.5)
 
-# [1, 1] Delta CP Residuals
-axs[1, 1].axhline(0, color="black", linestyle="--", lw=1.0, alpha=0.7)
-axs[1, 1].plot(exp_theta_deg, res_cp, "r-s", markersize=5, lw=1.5,
-               label=r"$\Delta C_P = C_{P,\mathrm{BEMT}} - C_{P,\mathrm{exp}}$")
-axs[1, 1].fill_between(exp_theta_deg, res_cp, 0, color="tomato", alpha=0.25)
-axs[1, 1].set_xlabel("Collective Pitch θ₀ [deg]")
-axs[1, 1].set_ylabel(r"$\Delta C_P$ Residual")
-axs[1, 1].set_title(r"$C_P$ Residuals ($\Delta C_P$ vs $\theta_0$)")
-axs[1, 1].legend(fontsize=7.5)
-
-# [1, 2] Delta FM Residuals
-axs[1, 2].axhline(0, color="black", linestyle="--", lw=1.0, alpha=0.7)
-axs[1, 2].plot(exp_ct_ref[valid_fm_pts], res_fm[valid_fm_pts], "g-^", markersize=5, lw=1.5,
-               label=r"$\Delta \mathrm{FM} = \mathrm{FM}_{\mathrm{BEMT}} - \mathrm{FM}_{\mathrm{exp}}$")
-axs[1, 2].fill_between(exp_ct_ref[valid_fm_pts], res_fm[valid_fm_pts], 0, color="lightgreen", alpha=0.3)
-axs[1, 2].set_xlabel("Thrust Coefficient C_T")
-axs[1, 2].set_ylabel(r"$\Delta \mathrm{FM}$ Residual")
-axs[1, 2].set_title(r"$\mathrm{FM}$ Residuals ($\Delta \mathrm{FM}$ vs $C_T$)")
-axs[1, 2].legend(fontsize=7.5)
-
-fig.tight_layout(pad=1.5)
+fig.tight_layout()
 st.pyplot(fig, use_container_width=True)
 plt.close(fig)
+
+# ── Complete 4x4 Grid Matrix (All Blade Counts) ───────────────────────────────
+with st.expander("📑 View Complete 4-Blade Matrix (b = 2, 3, 4, 5)", expanded=False):
+    fig_all, axs_all = plt.subplots(4, 4, figsize=(16, 12), dpi=100)
+    fig_all.suptitle("NACA TN 626 (Knight & Hefner, 1937) vs BEMT Validation & Error Residuals", fontsize=12, fontweight="bold", y=0.995)
+    
+    b_colors = {2: "b", 3: "g", 4: "r", 5: "m"}
+    
+    for row_idx, b_val in enumerate([2, 3, 4, 5]):
+        th_exp = exp_data_dict[b_val]["theta_deg"]
+        ct_exp = exp_data_dict[b_val]["CT"]
+        cp_exp = exp_data_dict[b_val]["CP"]
+        fm_exp = np.zeros_like(ct_exp)
+        v_fm = (ct_exp > 0) & (cp_exp > 0)
+        fm_exp[v_fm] = (ct_exp[v_fm] ** 1.5) / (np.sqrt(2.0) * cp_exp[v_fm])
+        
+        b_ct_eval, b_cp_eval, b_fm_eval = _sweep(b_val, th_exp)
+        b_ct_dense, b_cp_dense, b_fm_dense = _sweep(b_val, plot_theta_deg)
+        
+        r_ct_s = (b_ct_eval - ct_exp) * 1e4
+        r_cp_s = (b_cp_eval - cp_exp) * 1e5
+        
+        c_line = b_colors[b_val]
+        
+        # Col 0: CT
+        axs_all[row_idx, 0].plot(th_exp, ct_exp, "ko", markersize=4.5, label="NACA TN 626 Exp", zorder=5)
+        axs_all[row_idx, 0].plot(plot_theta_deg, b_ct_dense, f"{c_line}-", lw=1.6, label=f"BEMT (b={b_val})")
+        axs_all[row_idx, 0].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=7.5)
+        axs_all[row_idx, 0].set_ylabel(r"$C_T$", fontsize=7.5)
+        axs_all[row_idx, 0].set_title(rf"$C_T$ vs $\theta$ ($b={b_val}$)", fontsize=8.5, fontweight="bold")
+        axs_all[row_idx, 0].grid(True, linestyle=":", alpha=0.4)
+        axs_all[row_idx, 0].legend(fontsize=6.5)
+        
+        # Col 1: CP
+        axs_all[row_idx, 1].plot(th_exp, cp_exp, "ks", markersize=4.5, label="NACA TN 626 Exp", zorder=5)
+        axs_all[row_idx, 1].plot(plot_theta_deg, b_cp_dense, f"{c_line}-", lw=1.6, label=f"BEMT (b={b_val})")
+        axs_all[row_idx, 1].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=7.5)
+        axs_all[row_idx, 1].set_ylabel(r"$C_P$", fontsize=7.5)
+        axs_all[row_idx, 1].set_title(rf"$C_P$ vs $\theta$ ($b={b_val}$)", fontsize=8.5, fontweight="bold")
+        axs_all[row_idx, 1].grid(True, linestyle=":", alpha=0.4)
+        axs_all[row_idx, 1].legend(fontsize=6.5)
+        
+        # Col 2: FM
+        v_p = b_ct_dense > 0
+        axs_all[row_idx, 2].plot(ct_exp[v_fm], fm_exp[v_fm], "k^", markersize=4.5, label="NACA TN 626 Exp", zorder=5)
+        axs_all[row_idx, 2].plot(b_ct_dense[v_p], b_fm_dense[v_p], f"{c_line}-", lw=1.6, label=f"BEMT (b={b_val})")
+        axs_all[row_idx, 2].set_xlabel(r"Thrust Coefficient $C_T$", fontsize=7.5)
+        axs_all[row_idx, 2].set_ylabel(r"$\mathrm{FM}$", fontsize=7.5)
+        axs_all[row_idx, 2].set_title(rf"$\mathrm{{FM}}$ vs $C_T$ ($b={b_val}$)", fontsize=8.5, fontweight="bold")
+        axs_all[row_idx, 2].set_ylim(0.0, 0.85)
+        axs_all[row_idx, 2].grid(True, linestyle=":", alpha=0.4)
+        axs_all[row_idx, 2].legend(fontsize=6.5)
+        
+        # Col 3: Residuals
+        axs_all[row_idx, 3].axhline(0, color="gray", linestyle="--", lw=0.9, zorder=1)
+        axs_all[row_idx, 3].plot(th_exp, r_ct_s, "b-o", markersize=4.0, lw=1.3, label=r"$\Delta C_T \times 10^4$")
+        axs_all[row_idx, 3].plot(th_exp, r_cp_s, "r--s", markersize=4.0, lw=1.3, label=r"$\Delta C_P \times 10^5$")
+        axs_all[row_idx, 3].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=7.5)
+        axs_all[row_idx, 3].set_ylabel("Residual Error", fontsize=7.5)
+        axs_all[row_idx, 3].set_title(rf"Residuals $\Delta = \mathrm{{BEMT}} - \mathrm{{Exp}}$ ($b={b_val}$)", fontsize=8.5, fontweight="bold")
+        axs_all[row_idx, 3].grid(True, linestyle=":", alpha=0.4)
+        axs_all[row_idx, 3].legend(loc="upper left", fontsize=6.5)
+
+    fig_all.tight_layout(pad=1.2)
+    st.pyplot(fig_all, use_container_width=True)
+    plt.close(fig_all)
 
 st.caption(
     "Experimental data sourced from: Knight, M. & Hefner, R. A. (1937). "
