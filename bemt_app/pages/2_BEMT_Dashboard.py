@@ -305,7 +305,7 @@ with tab_perf:
     fig_3d.add_trace(go.Scatter3d(
         x=wf_x, y=wf_y, z=wf_z,
         mode='lines',
-        line=dict(color='rgba(0,0,0,0.15)', width=1.5),
+        line=dict(color='rgba(0,0,0,0.6)', width=2.5),
         showlegend=False,
         hoverinfo='skip'
     ))
@@ -329,9 +329,9 @@ with tab_perf:
             xaxis_title='Radius r [m]',
             yaxis_title='Advancing x [m]',
             zaxis_title='Height z [m]',
-            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False),
-            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False),
-            zaxis=dict(zeroline=False, showgrid=False),
+            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False, showbackground=False),
+            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False, showbackground=False),
+            zaxis=dict(zeroline=False, showgrid=False, showbackground=False),
             aspectmode='manual',
             aspectratio=dict(x=3.0, y=1.0, z=0.15),
             camera=camera
