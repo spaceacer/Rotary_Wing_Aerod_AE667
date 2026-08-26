@@ -249,6 +249,10 @@ with tab_perf:
         
         af_x, af_y = af_blend.get_blended_coords(r_val / radius, use_camber=use_camber)
         
+        # Downsample for faster 3D rendering performance
+        step = max(1, len(af_x) // 50)
+        af_x, af_y = af_x[::step], af_y[::step]
+        
         xr = (pitch_axis - af_x) * c_val * np.cos(th_val) - af_y * c_val * np.sin(th_val)
         zr = (pitch_axis - af_x) * c_val * np.sin(th_val) + af_y * c_val * np.cos(th_val)
         
@@ -321,7 +325,7 @@ with tab_perf:
             zaxis_title='Height z [m]',
             xaxis=dict(range=[-pad, pad]),
             yaxis=dict(range=[-pad, pad]),
-            zaxis=dict(range=[-max_c*1.5, max_c*1.5]),
+            aspectmode='manual',
             aspectratio=dict(x=1.0, y=1.0, z=0.3),
             camera=camera
         ),
