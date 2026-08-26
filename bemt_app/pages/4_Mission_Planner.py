@@ -13,9 +13,9 @@ import streamlit as st
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.airfoil_catalog import filter_airfoil_catalog, get_all_available_airfoils
+from core.airfoil_catalog import filter_airfoil_catalog, get_all_available_airfoils, load_airfoil_coords
 from core.airfoil_blend import BlendedAirfoil
-from core.airfoil_model import AirfoilModel, load_airfoil_coords
+from core.airfoil_model import AirfoilModel
 from core.bemt_solver import run_bemt
 from core.geometry_helpers import make_chord_func, make_twist_func
 from core.models import FlightCondition, RotorGeometry
