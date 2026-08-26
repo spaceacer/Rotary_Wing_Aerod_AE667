@@ -51,3 +51,6 @@ wheels/
 htmlcov/
 .vscode/
 .idea/
+
+*.ipynb
+*.ipynb
