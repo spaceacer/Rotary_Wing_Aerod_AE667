@@ -329,9 +329,9 @@ with tab_perf:
             xaxis_title='Radius r [m]',
             yaxis_title='Advancing x [m]',
             zaxis_title='Height z [m]',
-            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False, showbackground=False, showticklabels=False),
-            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False, showbackground=False, showticklabels=False),
-            zaxis=dict(zeroline=False, showgrid=False, showbackground=False, showticklabels=False),
+            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False, showbackground=False, showticklabels=False, showspikes=False),
+            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False, showbackground=False, showticklabels=False, showspikes=False),
+            zaxis=dict(zeroline=False, showgrid=False, showbackground=False, showticklabels=False, showspikes=False),
             aspectmode='manual',
             aspectratio=dict(x=3.0, y=1.0, z=0.15),
             camera=camera
