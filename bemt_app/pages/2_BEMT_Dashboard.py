@@ -278,7 +278,12 @@ with tab_perf:
         colorscale=[[0, 'rgb(38,178,228)'], [1, 'rgb(255,64,64)']],
         showscale=False,
         cmin=0, cmax=1,
-        lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0)
+        lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0),
+        contours=dict(
+            x=dict(highlight=False),
+            y=dict(highlight=False),
+            z=dict(highlight=False)
+        )
     )])
 
     # --- Add wireframe to show mesh refinement ---
@@ -329,9 +334,9 @@ with tab_perf:
             xaxis_title='Radius r [m]',
             yaxis_title='Advancing x [m]',
             zaxis_title='Height z [m]',
-            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False, showbackground=False, showticklabels=False, showspikes=False),
-            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False, showbackground=False, showticklabels=False, showspikes=False),
-            zaxis=dict(zeroline=False, showgrid=False, showbackground=False, showticklabels=False, showspikes=False),
+            xaxis=dict(range=[0, radius + 0.04], showspikes=False),
+            yaxis=dict(range=[-max_c, max_c], showspikes=False),
+            zaxis=dict(showspikes=False),
             aspectmode='manual',
             aspectratio=dict(x=3.0, y=1.0, z=0.15),
             camera=camera
