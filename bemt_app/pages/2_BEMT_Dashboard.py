@@ -45,7 +45,7 @@ def _catalog() -> list:
 @st.cache_data(show_spinner=False)
 def _run_sweep(radius, r_rc, blades, c_root, taper, twist, v_axial, rpm, n_elem, af_names, af_stations, ncrit_pref):
     # Reconstruct the af_blend inside the cached function
-    models = [AirfoilModel(name, ncrit_pref) for name in af_names]
+    models = [AirfoilModel(name, ncrit_pref=ncrit_pref) for name in af_names]
     af_blend = BlendedAirfoil(list(af_stations), models)
     
     cond = FlightCondition(v_axial=v_axial, rpm=rpm, rho=1.225)
