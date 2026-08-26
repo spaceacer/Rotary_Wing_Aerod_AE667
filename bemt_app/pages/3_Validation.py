@@ -222,10 +222,10 @@ axs[2].set_title(rf"$\mathrm{{FM}}$ vs $C_T$ ($b={B_kh}$)", fontsize=9.5, fontwe
 axs[2].set_ylim(0.0, 0.85)
 axs[2].legend(fontsize=7.5)
 
-# 4. Combined Residuals (ΔCT x 10^4 and ΔCP x 10^5)
+# 4. Combined Residuals (ΔCT x 10^-4 and ΔCP x 10^-5)
 axs[3].axhline(0, color="gray", linestyle="--", lw=1.0, zorder=1)
-axs[3].plot(exp_theta_deg, res_ct_scaled, "b-o", markersize=4.5, lw=1.5, label=r"$\Delta C_T \times 10^4$")
-axs[3].plot(exp_theta_deg, res_cp_scaled, "r--s", markersize=4.5, lw=1.5, label=r"$\Delta C_P \times 10^5$")
+axs[3].plot(exp_theta_deg, res_ct_scaled, "b-o", markersize=4.5, lw=1.5, label=r"$\Delta C_T \times 10^{-4}$")
+axs[3].plot(exp_theta_deg, res_cp_scaled, "r--s", markersize=4.5, lw=1.5, label=r"$\Delta C_P \times 10^{-5}$")
 axs[3].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=8.5)
 axs[3].set_ylabel("Residual Error", fontsize=8.5)
 axs[3].set_title(rf"Residuals $\Delta = \mathrm{{BEMT}} - \mathrm{{Exp}}$ ($b={B_kh}$)", fontsize=9.5, fontweight="bold")
@@ -289,8 +289,8 @@ with st.expander("📑 View Complete 4-Blade Matrix (b = 2, 3, 4, 5)", expanded=
         
         # Col 3: Residuals
         axs_all[row_idx, 3].axhline(0, color="gray", linestyle="--", lw=0.9, zorder=1)
-        axs_all[row_idx, 3].plot(th_exp, r_ct_s, "b-o", markersize=4.0, lw=1.3, label=r"$\Delta C_T \times 10^4$")
-        axs_all[row_idx, 3].plot(th_exp, r_cp_s, "r--s", markersize=4.0, lw=1.3, label=r"$\Delta C_P \times 10^5$")
+        axs_all[row_idx, 3].plot(th_exp, r_ct_s, "b-o", markersize=4.0, lw=1.3, label=r"$\Delta C_T \times 10^{-4}$")
+        axs_all[row_idx, 3].plot(th_exp, r_cp_s, "r--s", markersize=4.0, lw=1.3, label=r"$\Delta C_P \times 10^{-5}$")
         axs_all[row_idx, 3].set_xlabel(r"Pitch Angle $\theta$ [deg]", fontsize=7.5)
         axs_all[row_idx, 3].set_ylabel("Residual Error", fontsize=7.5)
         axs_all[row_idx, 3].set_title(rf"Residuals $\Delta = \mathrm{{BEMT}} - \mathrm{{Exp}}$ ($b={b_val}$)", fontsize=8.5, fontweight="bold")
