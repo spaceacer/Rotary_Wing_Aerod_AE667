@@ -274,7 +274,7 @@ with tab_perf:
         colorscale=[[0, 'rgb(38,178,228)'], [1, 'rgb(255,64,64)']],
         showscale=False,
         cmin=0, cmax=1,
-        lighting=dict(ambient=0.6, diffuse=0.8, roughness=0.1, specular=0.5, fresnel=0.2)
+        lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0)
     )])
 
     max_c = max(c_root, c_root * taper)
