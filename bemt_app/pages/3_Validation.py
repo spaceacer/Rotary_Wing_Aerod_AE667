@@ -193,7 +193,7 @@ for ax in axs:
 
 # CT vs θ₀
 axs[0].plot(exp_theta_deg, exp_ct_ref, "ko", markersize=7,
-            label=f"K"K&H Exp  (b=2)"H Exp  (b={B_kh})", zorder=5)
+            label=f"K&H Exp (b={B_kh})", zorder=5)
 axs[0].plot(exp_theta_deg, bemt_ct, "b-", lw=2.2,
             label=f"BEMT  (b={B_kh})")
 axs[0].set_xlabel("Collective Pitch θ₀ [deg]")
@@ -203,7 +203,7 @@ axs[0].legend(fontsize=8)
 
 # CP vs θ₀
 axs[1].plot(exp_theta_deg, exp_cp_ref, "ks", markersize=7,
-            label=f"K"K&H Exp  (b=2)"H Exp  (b={B_kh})", zorder=5)
+            label=f"K&H Exp (b={B_kh})", zorder=5)
 axs[1].plot(exp_theta_deg, bemt_cp, "r-", lw=2.2,
             label=f"BEMT  (b={B_kh})")
 axs[1].set_xlabel("Collective Pitch θ₀ [deg]")
@@ -213,7 +213,7 @@ axs[1].legend(fontsize=8)
 
 # FM vs CT
 axs[2].plot(exp_ct_ref, exp_fm_ref, "k^", markersize=7,
-            label=f"K"K&H Exp  (b=2)"H Exp  (b={B_kh})", zorder=5)
+            label=f"K&H Exp (b={B_kh})", zorder=5)
 axs[2].plot(bemt_ct, bemt_fm, "g-", lw=2.2,
             label=f"BEMT  (b={B_kh})")
 axs[2].set_xlabel("Thrust Coefficient C_T")
