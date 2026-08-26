@@ -217,7 +217,7 @@ def run_bemt(
         stall_fraction=stall_frac, tip_mach=tip_mach,
         r_stations=r_stations, dr=dr,
         inflow_ratio=lambda_total, lambda_i=lambda_induced, lambda_c=lambda_c,
-        phi=phi, alpha=alpha, cl=cl, cd=cd,
+        phi=phi, alpha=alpha, re_r=re_r, cl=cl, cd=cd,
         d_thrust=dt_dr, d_torque=dq_dr, d_power=dp_dr,
         stalled_mask=stalled_mask,
     )

@@ -59,6 +59,7 @@ class BEMTResult:
     lambda_c: float
     phi: np.ndarray             # Inflow angle [rad]
     alpha: np.ndarray           # Angle of attack [rad]
+    re_r: np.ndarray            # Reynolds number
     cl: np.ndarray
     cd: np.ndarray
     d_thrust: np.ndarray

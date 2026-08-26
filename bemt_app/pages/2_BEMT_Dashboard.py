@@ -42,6 +42,27 @@ st.title("🚁  BEMT Rotor Analysis Dashboard")
 def _catalog() -> list:
     return get_all_available_airfoils()
 
+@st.cache_data(show_spinner=False)
+def _run_sweep(radius, r_rc, blades, c_root, taper, twist, v_axial, rpm, n_elem, af_names, af_stations, ncrit_pref):
+    # Reconstruct the af_blend inside the cached function
+    models = [AirfoilModel(name, ncrit_pref) for name in af_names]
+    af_blend = BlendedAirfoil(list(af_stations), models)
+    
+    cond = FlightCondition(v_axial=v_axial, rpm=rpm, rho=1.225)
+    
+    thetas = np.linspace(0.0, 25.0, 20)
+    cts, fms = [], []
+    for th in thetas:
+        geom = RotorGeometry(
+            radius=radius, root_cutout=r_rc, num_blades=blades,
+            chord_func=make_chord_func(c_root, taper, radius, r_rc),
+            twist_func=make_twist_func(th, twist, radius),
+        )
+        res = run_bemt(geom, cond, af_blend, num_elements=n_elem)
+        cts.append(res.ct)
+        fms.append(res.figure_of_merit)
+    return thetas, np.array(cts), np.array(fms)
+
 
 @st.cache_data(show_spinner="Loading airfoil model …")
 def _model(name: str, ncrit: int) -> AirfoilModel:
@@ -182,59 +203,112 @@ deg_alpha = np.degrees(res.alpha)
 tab_perf, tab_inspect = st.tabs(["🚁 Rotor Performance", "🔍 Station Inspector"])
 
 with tab_perf:
-    fig_2d = plt.figure(figsize=(6, 8))
-    gs = fig_2d.add_gridspec(4, 1, hspace=0.48, left=0.15, right=0.95, top=0.95, bottom=0.06)
+    # Run sweep for performance curves
+    sweep_thetas, sweep_cts, sweep_fms = _run_sweep(radius, r_rc, blades, c_root, taper, twist, v_axial, rpm, n_elem, tuple(af_names), tuple(r_stations), ncrit)
+    
+    fig_2d = plt.figure(figsize=(11, 10))
+    gs = fig_2d.add_gridspec(4, 2, hspace=0.6, wspace=0.3, left=0.08, right=0.95, top=0.92, bottom=0.06)
 
     ax_aoa = fig_2d.add_subplot(gs[0, 0])
-    ax_thrust = fig_2d.add_subplot(gs[1, 0])
-    ax_power = fig_2d.add_subplot(gs[2, 0])
+    ax_re = fig_2d.add_subplot(gs[1, 0])
+    ax_coeffs = fig_2d.add_subplot(gs[2, 0])
     ax_inflow = fig_2d.add_subplot(gs[3, 0])
 
-    _2d_axes = (ax_aoa, ax_thrust, ax_power, ax_inflow)
+    ax_thrust = fig_2d.add_subplot(gs[0, 1])
+    ax_power = fig_2d.add_subplot(gs[1, 1])
+    ax_ct = fig_2d.add_subplot(gs[2, 1])
+    ax_fm = fig_2d.add_subplot(gs[3, 1])
+
+    _2d_axes = (ax_aoa, ax_re, ax_coeffs, ax_inflow, ax_thrust, ax_power, ax_ct, ax_fm)
     for ax in _2d_axes:
         ax.tick_params(labelsize=7)
         ax.grid(True, linestyle=":", alpha=0.35, color="gray")
 
-    ax_aoa.plot(r_norm, deg_alpha, color="#4fc3f7", lw=1.8, label="α(r)")
+    # [0, 0] AoA
+    ax_aoa.plot(r_norm, deg_alpha, color="blue", lw=1.8, label="α(r)")
     max_stall = max([np.degrees(m.alpha_stall) for m in af_blend.models])
-    ax_aoa.axhline(max_stall, color="tomato", linestyle="--", lw=1.3, label="α_stall (max)")
+    ax_aoa.axhline(max_stall, color="red", linestyle="--", lw=1.5, label="α_stall")
     ax_aoa.set_ylabel("AoA [deg]", fontsize=7.5)
-    ax_aoa.set_title(f"AoA Profile  (θ₀ = {pitch:.1f}°, twist = {twist:.1f}°)", fontsize=8)
+    ax_aoa.set_title(f"AoA Profile (θ₀ = {pitch:.1f}°, twist = {twist:.1f}°)", fontsize=8)
     ax_aoa.set_xlim(r_norm[0], 1.0)
     ax_aoa.set_ylim(min(np.min(deg_alpha) - 2, -5), max(np.max(deg_alpha) + 2, 20))
     ax_aoa.legend(loc="upper right", fontsize=6.5)
 
-    dt_vals = res.d_thrust * res.dr
-    ax_thrust.plot(r_norm, dt_vals, color="#66bb6a", lw=1.8, label="dT [N]")
-    ax_thrust.set_ylabel("dT [N]", fontsize=7.5)
-    ax_thrust.set_title(f"Thrust Loading   T = {res.thrust:.1f} N", fontsize=8)
-    ax_thrust.set_xlim(r_norm[0], 1.0)
-    max_t = max(np.max(dt_vals), 0.05)
-    ax_thrust.set_ylim(min(np.min(dt_vals), 0) * 1.2 or -0.05, max_t * 1.25)
-    ax_thrust.legend(loc="upper right", fontsize=6.5)
+    # [1, 0] Reynolds Number
+    ax_re.plot(r_norm, res.re_r * 1e-5, color="black", lw=1.8, label=r"Re(r) $\times 10^{-5}$")
+    ax_re.set_ylabel(r"Re $\times 10^{-5}$", fontsize=7.5)
+    re_tip = res.re_r[-1]
+    re_mean = np.mean(res.re_r)
+    ax_re.set_title(f"Reynolds Distribution (Re_tip = {re_tip:,.0f} | Re_mean = {re_mean:,.0f})", fontsize=8)
+    ax_re.set_xlim(r_norm[0], 1.0)
+    ax_re.legend(loc="upper left", fontsize=6.5)
 
-    dp_vals = res.d_power * res.dr
-    dq_vals = res.d_torque * res.dr
-    ax_power.plot(r_norm, dp_vals, color="tomato", lw=1.8, label="dP [W]")
-    ax_power.plot(r_norm, dq_vals * 10, color="#ce93d8", lw=1.5, linestyle="--", label="10×dQ [N·m]")
-    ax_power.set_ylabel("Power / Torque", fontsize=7.5)
-    ax_power.set_title(f"Power & Torque   P = {res.power:.0f} W  |  Q = {res.torque:.2f} N·m", fontsize=8)
-    ax_power.set_xlim(r_norm[0], 1.0)
-    max_p = max(np.max(dp_vals), np.max(dq_vals * 10), 0.1)
-    ax_power.set_ylim(min(np.min(dp_vals), 0) * 1.2 or -0.05, max_p * 1.25)
-    ax_power.legend(loc="upper right", fontsize=6.5)
+    # [2, 0] Section Coefficients
+    ax_coeffs.plot(r_norm, res.cl, color="blue", lw=1.8, label="C_l(r)")
+    ax_coeffs.plot(r_norm, res.cd * 10, color="red", linestyle="--", lw=1.5, label="10 × C_d(r)")
+    ax_coeffs.set_ylabel("C_l and C_d", fontsize=7.5)
+    cl_max = np.max(res.cl)
+    ld_max = np.max(res.cl / np.maximum(res.cd, 1e-6))
+    ax_coeffs.set_title(f"Section Coefficients (C_l,max = {cl_max:.2f} | (L/D)max = {ld_max:.1f})", fontsize=8)
+    ax_coeffs.set_xlim(r_norm[0], 1.0)
+    ax_coeffs.set_ylim(min(np.min(res.cd * 10) - 0.1, -0.2), max(np.max(res.cl) + 0.2, 1.2))
+    ax_coeffs.legend(loc="upper left", fontsize=6.5)
 
+    # [3, 0] Inflow Ratio
     ax_inflow.plot(r_norm, res.inflow_ratio, color="black", lw=1.8, label="λ_total")
     ax_inflow.plot(r_norm, res.lambda_i, color="cyan", lw=1.5, linestyle="--", label="λ_i (induced)")
     ax_inflow.axhline(res.lambda_c, color="orange", lw=1.3, linestyle=":", label="λ_c (climb)")
     ax_inflow.set_xlabel("r / R", fontsize=7.5)
     ax_inflow.set_ylabel("Inflow λ", fontsize=7.5)
-    ax_inflow.set_title("Inflow Ratio  λ = λ_c + λ_i", fontsize=8)
+    ax_inflow.set_title("Inflow Ratio λ = λ_c + λ_i", fontsize=8)
     ax_inflow.set_xlim(r_norm[0], 1.0)
     max_lam = max(np.max(res.inflow_ratio) * 1.2, 0.05)
     min_lam = min(np.min(res.inflow_ratio) * 1.2, 0.0)
     ax_inflow.set_ylim(min_lam, max_lam)
-    ax_inflow.legend(loc="upper right", fontsize=6.5)
+    ax_inflow.legend(loc="upper left", fontsize=6.5)
+
+    # [0, 1] Thrust Loading
+    dt_vals = res.d_thrust * res.dr
+    ax_thrust.plot(r_norm, dt_vals, color="green", lw=1.8, label="dT [N]")
+    ax_thrust.set_ylabel("dT [N]", fontsize=7.5)
+    ax_thrust.set_title(f"Thrust Loading (T = {res.thrust:.1f} N)", fontsize=8)
+    ax_thrust.set_xlim(r_norm[0], 1.0)
+    max_t = max(np.max(dt_vals), 0.05)
+    ax_thrust.set_ylim(min(np.min(dt_vals), 0) * 1.2 or -0.05, max_t * 1.25)
+    ax_thrust.legend(loc="upper right", fontsize=6.5)
+
+    # [1, 1] Power & Torque
+    dp_vals = res.d_power * res.dr
+    dq_vals = res.d_torque * res.dr
+    ax_power.plot(r_norm, dp_vals, color="red", lw=1.8, label="dP [W]")
+    ax_power.plot(r_norm, dq_vals * 10, color="m", lw=1.5, linestyle="--", label="10 × dQ [N·m]")
+    ax_power.set_ylabel("Power / Torque", fontsize=7.5)
+    ax_power.set_title(f"Power & Torque (P = {res.power:.1f} W | Q = {res.torque:.2f} N·m)", fontsize=8)
+    ax_power.set_xlim(r_norm[0], 1.0)
+    max_p = max(np.max(dp_vals), np.max(dq_vals * 10), 0.1)
+    ax_power.set_ylim(min(np.min(dp_vals), 0) * 1.2 or -0.05, max_p * 1.25)
+    ax_power.legend(loc="upper right", fontsize=6.5)
+
+    # [2, 1] C_T vs Theta
+    ax_ct.plot(sweep_thetas, sweep_cts, color="blue", marker=".", markersize=5, lw=1.5, label="C_T(θ)")
+    ax_ct.plot(pitch, res.ct, color="red", marker="o", markersize=8, label="Current", linestyle="None")
+    ax_ct.set_ylabel("C_T", fontsize=7.5)
+    ax_ct.set_title("C_T vs θ₀", fontsize=8)
+    ax_ct.set_xlim(0.0, 25.0)
+    ax_ct.set_ylim(0.0, max(np.max(sweep_cts) * 1.1, 0.01))
+    ax_ct.legend(loc="upper left", fontsize=6.5)
+
+    # [3, 1] FM vs C_T
+    valid_fm = sweep_cts > 0
+    fm_max = np.max(sweep_fms) if np.any(valid_fm) else 0.0
+    ax_fm.plot(sweep_cts[valid_fm], sweep_fms[valid_fm], color="green", marker="^", markersize=4, lw=1.5, label="FM Curve")
+    ax_fm.plot(res.ct, res.figure_of_merit, color="red", marker="o", markersize=8, label="Current", linestyle="None")
+    ax_fm.set_xlabel("C_T", fontsize=7.5)
+    ax_fm.set_ylabel("Figure of Merit", fontsize=7.5)
+    ax_fm.set_title(f"Figure of Merit vs C_T (FM_max = {fm_max:.3f})", fontsize=8)
+    ax_fm.set_xlim(0.0, max(np.max(sweep_cts) * 1.1, 0.01))
+    ax_fm.set_ylim(0.0, 1.0)
+    ax_fm.legend(loc="lower right", fontsize=6.5)
 
     # ── 3-D blade mesh (Plotly) ───────────────────────────────────────────────────
     r_edges_3d = np.linspace(r_rc, radius, n_elem + 1)
@@ -378,7 +452,7 @@ with tab_perf:
     # --------------------------------------------------------------------------
     # RENDER COLUMNS
     # --------------------------------------------------------------------------
-    col_3d, col_2d = st.columns([1.5, 1.0])
+    col_3d, col_2d = st.columns([1.0, 1.4])
     with col_3d:
         # Display the 2D Top View and 3D reference blade
         t1, t2 = st.columns([1, 2])
