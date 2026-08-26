@@ -68,53 +68,50 @@ R_rc_kh = 0.127
 c_kh = 0.0508
 rho_sl = 1.225
 
-# Digitised & reconciled NACA TN 626 data
-exp_theta_deg = np.array([2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0])
+# =======================================================================
+# 1. NACA TN 626 EXPERIMENTAL DATA (from Tables I - IV)
+# =======================================================================
+# Note: The raw NACA tables use C_T = T / (0.5 * rho * V_tip^2 * A).
+# We multiply by 0.5 to convert to modern C_T = T / (rho * V_tip^2 * A).
+exp_data_dict = {
+    2: {  
+        'theta_deg': np.array([0.0, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0]),
+        'CT': 0.5 * np.array([0.0, 0.000280, 0.000873, 0.00248, 0.00442, 0.00650, 0.00847, 0.00990]),
+        'CP': 0.5 * np.array([0.0001080, 0.000111, 0.000125, 0.000191, 0.000316, 0.000494, 0.000691, 0.000878]),
+    },
+    3: {  
+        'theta_deg': np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0]),
+        'CT': 0.5 * np.array([0.0, 0.00102, 0.00298, 0.00548, 0.00833, 0.01125, 0.01370]),
+        'CP': 0.5 * np.array([0.0001850, 0.000206, 0.000300, 0.000474, 0.000735, 0.001048, 0.001357]),
+    },
+    4: {  
+        'theta_deg': np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]),
+        'CT': 0.5 * np.array([0.0, 0.000287, 0.001042, 0.00214, 0.00338, 0.00473, 0.00645, 0.00792, 0.00981, 0.01182, 0.01382, 0.01596, 0.01745]),
+        'CP': 0.5 * np.array([0.000268, 0.000274, 0.000300, 0.000338, 0.000410, 0.000499, 0.000620, 0.000743, 0.000920, 0.001162, 0.001395, 0.00171, 0.00191]),
+    },
+    5: {  
+        'theta_deg': np.array([0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0]),
+        'CT': 0.5 * np.array([0.0, 0.001181, 0.00362, 0.00694, 0.01103, 0.01548, 0.02000]),
+        'CP': 0.5 * np.array([0.0002380, 0.000270, 0.000396, 0.000680, 0.001086, 0.001597, 0.002240]),
+    }
+}
 
-# Original mislabeled data (actually b=2 from Figure 7)
-_ct_b2 = np.array([0.00062, 0.00178, 0.00335, 0.00520, 0.00728,
-                       0.00945, 0.01150, 0.01310, 0.01420])
-_cp_b2 = np.array([0.000105, 0.000160, 0.000275, 0.000460, 0.000725,
-                       0.001080, 0.001510, 0.002010, 0.002580])
+exp_theta_deg = exp_data_dict[B_kh]['theta_deg']
+exp_ct_ref = exp_data_dict[B_kh]['CT']
+exp_cp_ref = exp_data_dict[B_kh]['CP']
 
-# Newly digitized b=3 data from Figure 7 (crosses)
-_ct_b3 = np.array([0.00080, 0.00230, 0.00400, 0.00620, 0.00890,
-                       0.01180, 0.01400, 0.01600, 0.01750])
-_cp_b3 = _cp_b2 * 1.35
-
-# Newly digitized b=4 data from Figure 7 (pluses)
-_ct_b4 = np.array([0.00095, 0.00280, 0.00485, 0.00750, 0.01060,
-                       0.01380, 0.01650, 0.01820, 0.01950])
-_cp_b4 = _cp_b2 * 1.6  
-
-# Newly digitized b=5 data from Figure 7 (triangles)
-_ct_b5 = np.array([0.00110, 0.00320, 0.00570, 0.00860, 0.01210,
-                       0.01550, 0.01850, 0.02050, 0.02200])
-_cp_b5 = _cp_b2 * 1.85
-
-# Dynamically select the correct experimental dataset
-if B_kh == 2:
-    exp_ct_ref = _ct_b2
-    exp_cp_ref = _cp_b2
-elif B_kh == 3:
-    exp_ct_ref = _ct_b3
-    exp_cp_ref = _cp_b3
-elif B_kh == 4:
-    exp_ct_ref = _ct_b4
-    exp_cp_ref = _cp_b4
-elif B_kh == 5:
-    exp_ct_ref = _ct_b5
-    exp_cp_ref = _cp_b5
-
-exp_fm_ref = (exp_ct_ref ** 1.5) / (np.sqrt(2.0) * exp_cp_ref)
+exp_fm_ref = np.zeros_like(exp_ct_ref)
+with np.errstate(divide='ignore', invalid='ignore'):
+    valid = (exp_ct_ref > 0) & (exp_cp_ref > 0)
+    exp_fm_ref[valid] = (exp_ct_ref[valid] ** 1.5) / (np.sqrt(2.0) * exp_cp_ref[valid])
 
 # ── airfoil (NACA 0015) ───────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Loading NACA 0015 airfoil data …")
 def _load_airfoil():
-    return AirfoilModel(airfoil_name="NACA 0015", ncrit_pref=9)
+    return AirfoilModel(airfoil_name="Knight & Hefner Analytical")
 
 airfoil_kh = _load_airfoil()
-cond_kh = FlightCondition(v_axial=0.0, rpm=1200.0, rho=rho_sl)
+cond_kh = FlightCondition(v_axial=0.0, rpm=960.0, rho=rho_sl)
 
 # ── sweep ─────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Running BEMT sweep …")
@@ -128,7 +125,7 @@ def _sweep(num_blades: int):
             chord_func=make_chord_func(c_kh, 1.0, R_kh, R_rc_kh),
             twist_func=make_twist_func(float(th), 0.0, R_kh),
         )
-        r = run_bemt(geom, cond_kh, airfoil_kh, num_elements=50)
+        r = run_bemt(geom, cond_kh, airfoil_kh, num_elements=40)
         ct_list.append(r.ct)
         cp_list.append(r.cp)
         fm_list.append(r.figure_of_merit)

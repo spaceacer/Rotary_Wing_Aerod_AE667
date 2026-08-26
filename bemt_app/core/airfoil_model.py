@@ -185,10 +185,8 @@ class AirfoilModel:
             cl = self.spline_cl.ev(alpha_arr, log_re)
             cd = self.spline_cd.ev(alpha_arr, log_re)
         else:
-            re_ref = 2.4e5
-            re_factor = np.clip((re_ref / np.maximum(re_arr, 1e4)) ** 0.2, 0.7, 1.8)
             cl = self.cl_slope_fallback * alpha_arr
-            cd = (self.cd0_fallback * re_factor) + 1.25 * alpha_arr**2
+            cd = self.cd0_fallback + 1.25 * alpha_arr**2
 
         if np.any(mach_arr > 0.0):
             beta = np.sqrt(np.maximum(1e-4, 1.0 - np.clip(mach_arr, 0.0, 0.95) ** 2))
