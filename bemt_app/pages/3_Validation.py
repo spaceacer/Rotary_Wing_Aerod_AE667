@@ -45,11 +45,11 @@ st.markdown(
 
     **Rotor parameters (fixed):**
     - Radius R = 0.762 m
-    - Root cut-out R_rc = 0.125 m
-    - Chord c = 0.0508 m (constant)
+    - Root cut-out R_rc = 0.127 m (5 inches)
+    - Chord c = 0.0508 m (2 inches)
     - ρ = 1.225 kg/m³ (sea-level)
     - RPM = 1 200 rpm
-    - Analytical airfoil: Cl_α = 5.75 rad⁻¹, Cd₀ = 0.0113
+    - Airfoil: Real NACA 0015 (XFOIL polar)
     """
 )
 st.markdown("---")
@@ -65,7 +65,7 @@ with st.sidebar:
 
 # ── constants ─────────────────────────────────────────────────────────────────
 R_kh = 0.762
-R_rc_kh = 0.125
+R_rc_kh = 0.127
 c_kh = 0.0508
 rho_sl = 1.225
 
@@ -77,18 +77,12 @@ exp_cp_b4 = np.array([0.000105, 0.000160, 0.000275, 0.000460, 0.000725,
                        0.001080, 0.001510, 0.002010, 0.002580])
 exp_fm_b4 = (exp_ct_b4 ** 1.5) / (np.sqrt(2.0) * exp_cp_b4)
 
-# ── airfoil (analytical) ──────────────────────────────────────────────────────
-@st.cache_data(show_spinner="Setting up analytical airfoil …")
-def _analytical_airfoil():
-    return AirfoilModel(
-        airfoil_name="Knight & Hefner Analytical",
-        cl_slope_fallback=5.75,
-        cd0_fallback=0.0113,
-        alpha_stall_deg_fallback=14.0,
-        ncrit_pref=None,
-    )
+# ── airfoil (NACA 0015) ───────────────────────────────────────────────────────
+@st.cache_data(show_spinner="Loading NACA 0015 airfoil data …")
+def _load_airfoil():
+    return AirfoilModel(airfoil_name="NACA 0015", ncrit_pref=9)
 
-airfoil_kh = _analytical_airfoil()
+airfoil_kh = _load_airfoil()
 cond_kh = FlightCondition(v_axial=0.0, rpm=1200.0, rho=rho_sl)
 
 # ── sweep ─────────────────────────────────────────────────────────────────────

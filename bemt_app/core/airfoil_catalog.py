@@ -60,6 +60,7 @@ def to_airfoiltools_slug(name: str) -> str:
         "s1223rtl": "s1223rtl-il",
         "fx63137": "fx63137-il",
         "fx74cl5140": "fx74cl5140-il",
+        "naca0015": "naca0015-il",
     }
     if clean in known_mappings:
         return known_mappings[clean]
