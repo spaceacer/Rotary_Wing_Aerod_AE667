@@ -38,25 +38,28 @@ def make_chord_func(
 
 
 def make_twist_func(
-    theta0_deg: float,
+    theta_ref_deg: float,
     twist_deg: float,
     radius: float,
+    r_ref_norm: float = 0.0,
 ) -> Callable[[float], float]:
     """
-    Linear pitch distribution: θ(r) = θ₀ + θ_tw · (r/R).
+    Linear pitch distribution: θ(r) = θ_ref + θ_tw · (r/R - r_ref).
 
     Parameters
     ----------
-    theta0_deg : collective pitch at root [deg]
-    twist_deg  : linear twist rate [deg] (negative ⇒ washout)
-    radius     : rotor radius [m]
+    theta_ref_deg : pitch angle at reference station [deg]
+    twist_deg     : total linear twist rate across span [deg] (negative ⇒ washout)
+    radius        : rotor radius [m]
+    r_ref_norm    : radial station r/R where theta_ref is defined (0.0 for root θ₀, 0.75 for θ_0.75)
 
     Returns
     -------
     Callable theta(r) → pitch [rad]
     """
     def _twist(r: float) -> float:
-        return np.radians(theta0_deg + twist_deg * (r / max(radius, 1e-4)))
+        r_norm = r / max(radius, 1e-4)
+        return np.radians(theta_ref_deg + twist_deg * (r_norm - r_ref_norm))
     return _twist
 
 

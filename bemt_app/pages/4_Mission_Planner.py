@@ -508,7 +508,7 @@ with t_blade:
     geom_hov = RotorGeometry(
         radius=r_rotor, root_cutout=r_root, num_blades=n_blades,
         chord_func=make_chord_func(c_blade, blade_tap, r_rotor, r_root),
-        twist_func=make_twist_func(th_75_hover, th_tw, r_rotor)
+        twist_func=make_twist_func(th_75_hover, th_tw, r_rotor, r_ref_norm=0.75)
     )
     cond_hov = FlightCondition(v_axial=0.0, rpm=440.0, rho=rho_sl, speed_of_sound=a_sl)
     bemt_hov = run_bemt(geom_hov, cond_hov, af_model, num_elements=30)
@@ -516,7 +516,7 @@ with t_blade:
     geom_cr = RotorGeometry(
         radius=r_rotor, root_cutout=r_root, num_blades=n_blades,
         chord_func=make_chord_func(c_blade, blade_tap, r_rotor, r_root),
-        twist_func=make_twist_func(th_75_cruise, th_tw, r_rotor)
+        twist_func=make_twist_func(th_75_cruise, th_tw, r_rotor, r_ref_norm=0.75)
     )
     cond_cr = FlightCondition(v_axial=125.0, rpm=365.0, rho=rho_sl, speed_of_sound=a_sl)
     bemt_cr = run_bemt(geom_cr, cond_cr, af_model, num_elements=30)
