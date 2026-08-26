@@ -115,9 +115,9 @@ cond_kh = FlightCondition(v_axial=0.0, rpm=960.0, rho=rho_sl)
 
 # ── sweep ─────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Running BEMT sweep …")
-def _sweep(num_blades: int):
+def _sweep(num_blades: int, thetas: np.ndarray):
     ct_list, cp_list, fm_list = [], [], []
-    for th in exp_theta_deg:
+    for th in thetas:
         geom = RotorGeometry(
             radius=R_kh,
             root_cutout=R_rc_kh,
@@ -133,7 +133,9 @@ def _sweep(num_blades: int):
 
 
 with st.spinner(f"Running BEMT sweep for b = {B_kh} …"):
-    bemt_ct, bemt_cp, bemt_fm = _sweep(B_kh)
+    bemt_ct, bemt_cp, bemt_fm = _sweep(B_kh, exp_theta_deg)
+    plot_theta_deg = np.linspace(0.0, 12.5, 35)
+    plot_bemt_ct, plot_bemt_cp, plot_bemt_fm = _sweep(B_kh, plot_theta_deg)
 
 # ── error metrics ─────────────────────────────────────────────────────────────
 rmse_ct = float(np.sqrt(np.mean((bemt_ct - exp_ct_ref) ** 2)))
@@ -191,7 +193,7 @@ for ax in axs:
 # CT vs θ₀
 axs[0].plot(exp_theta_deg, exp_ct_ref, "ko", markersize=7,
             label=f"K&H Exp (b={B_kh})", zorder=5)
-axs[0].plot(exp_theta_deg, bemt_ct, "b-", lw=2.2,
+axs[0].plot(plot_theta_deg, plot_bemt_ct, "b-", lw=2.2,
             label=f"BEMT  (b={B_kh})")
 axs[0].set_xlabel("Collective Pitch θ₀ [deg]")
 axs[0].set_ylabel("Thrust Coefficient C_T")
@@ -201,7 +203,7 @@ axs[0].legend(fontsize=8)
 # CP vs θ₀
 axs[1].plot(exp_theta_deg, exp_cp_ref, "ks", markersize=7,
             label=f"K&H Exp (b={B_kh})", zorder=5)
-axs[1].plot(exp_theta_deg, bemt_cp, "r-", lw=2.2,
+axs[1].plot(plot_theta_deg, plot_bemt_cp, "r-", lw=2.2,
             label=f"BEMT  (b={B_kh})")
 axs[1].set_xlabel("Collective Pitch θ₀ [deg]")
 axs[1].set_ylabel("Power Coefficient C_P")
@@ -209,9 +211,11 @@ axs[1].set_title("C_P  vs  θ₀")
 axs[1].legend(fontsize=8)
 
 # FM vs CT
+# Filter to positive values to avoid plotting errors at 0,0 for FM
+valid_plot = plot_bemt_ct > 0
 axs[2].plot(exp_ct_ref, exp_fm_ref, "k^", markersize=7,
             label=f"K&H Exp (b={B_kh})", zorder=5)
-axs[2].plot(bemt_ct, bemt_fm, "g-", lw=2.2,
+axs[2].plot(plot_bemt_ct[valid_plot], plot_bemt_fm[valid_plot], "g-", lw=2.2,
             label=f"BEMT  (b={B_kh})")
 axs[2].set_xlabel("Thrust Coefficient C_T")
 axs[2].set_ylabel("Figure of Merit (FM)")
