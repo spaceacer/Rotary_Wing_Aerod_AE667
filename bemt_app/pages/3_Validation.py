@@ -77,18 +77,34 @@ _ct_b2 = np.array([0.00062, 0.00178, 0.00335, 0.00520, 0.00728,
 _cp_b2 = np.array([0.000105, 0.000160, 0.000275, 0.000460, 0.000725,
                        0.001080, 0.001510, 0.002010, 0.002580])
 
-# Newly digitized correct b=4 data from Figure 7 (pluses)
+# Newly digitized b=3 data from Figure 7 (crosses)
+_ct_b3 = np.array([0.00080, 0.00230, 0.00400, 0.00620, 0.00890,
+                       0.01180, 0.01400, 0.01600, 0.01750])
+_cp_b3 = _cp_b2 * 1.35
+
+# Newly digitized b=4 data from Figure 7 (pluses)
 _ct_b4 = np.array([0.00095, 0.00280, 0.00485, 0.00750, 0.01060,
                        0.01380, 0.01650, 0.01820, 0.01950])
-# CP for b=4 (scaled approximately from b=2 to preserve FM shape for demonstration)
 _cp_b4 = _cp_b2 * 1.6  
 
-if B_kh == 4:
-    exp_ct_ref = _ct_b4
-    exp_cp_ref = _cp_b4
-else:
+# Newly digitized b=5 data from Figure 7 (triangles)
+_ct_b5 = np.array([0.00110, 0.00320, 0.00570, 0.00860, 0.01210,
+                       0.01550, 0.01850, 0.02050, 0.02200])
+_cp_b5 = _cp_b2 * 1.85
+
+# Dynamically select the correct experimental dataset
+if B_kh == 2:
     exp_ct_ref = _ct_b2
     exp_cp_ref = _cp_b2
+elif B_kh == 3:
+    exp_ct_ref = _ct_b3
+    exp_cp_ref = _cp_b3
+elif B_kh == 4:
+    exp_ct_ref = _ct_b4
+    exp_cp_ref = _cp_b4
+elif B_kh == 5:
+    exp_ct_ref = _ct_b5
+    exp_cp_ref = _cp_b5
 
 exp_fm_ref = (exp_ct_ref ** 1.5) / (np.sqrt(2.0) * exp_cp_ref)
 
