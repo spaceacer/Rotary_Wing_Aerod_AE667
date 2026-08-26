@@ -302,7 +302,7 @@ with tab_perf:
             xaxis=dict(range=[0, radius + 0.04]),
             yaxis=dict(range=[-max_c, max_c]),
             aspectmode='manual',
-            aspectratio=dict(x=2.5, y=1.0, z=1.0),
+            aspectratio=dict(x=3.0, y=1.0, z=0.15),
             camera=camera
         ),
         margin=dict(l=0, r=0, b=0, t=60),
@@ -336,7 +336,8 @@ with tab_perf:
     ax_top.axis('off')
     ax_top.set_xlim(-radius * 1.1, radius * 1.1)
     ax_top.set_ylim(-radius * 1.1, radius * 1.1)
-    ax_top.set_title(f"Rotor Top View ({blades} Blades)", fontsize=10)
+    ax_top.set_title(f"Rotor Top View ({blades} Blades)", fontsize=10, pad=12)
+    fig_top.tight_layout()
 
     # --------------------------------------------------------------------------
     # RENDER COLUMNS
