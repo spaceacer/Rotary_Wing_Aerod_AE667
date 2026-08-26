@@ -281,6 +281,36 @@ with tab_perf:
         lighting=dict(ambient=0.7, diffuse=0.9, roughness=1.0, specular=0.0, fresnel=0.0)
     )])
 
+    # --- Add wireframe to show mesh refinement ---
+    wf_x, wf_y, wf_z = [], [], []
+    
+    # Radial lines (along the blade span)
+    for i in range(Y_grid.shape[0]):
+        wf_x.extend(Y_grid[i, :])
+        wf_x.append(None)
+        wf_y.extend(X_grid[i, :])
+        wf_y.append(None)
+        wf_z.extend(Z_grid[i, :])
+        wf_z.append(None)
+        
+    # Chordwise lines (cross sections)
+    for j in range(Y_grid.shape[1]):
+        wf_x.extend(Y_grid[:, j])
+        wf_x.append(None)
+        wf_y.extend(X_grid[:, j])
+        wf_y.append(None)
+        wf_z.extend(Z_grid[:, j])
+        wf_z.append(None)
+        
+    fig_3d.add_trace(go.Scatter3d(
+        x=wf_x, y=wf_y, z=wf_z,
+        mode='lines',
+        line=dict(color='rgba(0,0,0,0.15)', width=1.5),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+    # ---------------------------------------------
+
     max_c = max(c_root, c_root * taper)
 
     camera = dict(
@@ -299,8 +329,9 @@ with tab_perf:
             xaxis_title='Radius r [m]',
             yaxis_title='Advancing x [m]',
             zaxis_title='Height z [m]',
-            xaxis=dict(range=[0, radius + 0.04]),
-            yaxis=dict(range=[-max_c, max_c]),
+            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False),
+            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False),
+            zaxis=dict(zeroline=False, showgrid=False),
             aspectmode='manual',
             aspectratio=dict(x=3.0, y=1.0, z=0.15),
             camera=camera
