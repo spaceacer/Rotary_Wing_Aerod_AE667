@@ -114,7 +114,7 @@ with st.sidebar:
     st.subheader("Camera Preset")
     col_a, col_b = st.columns(2)
     if col_a.button("🔝 Top"):
-        st.session_state["elev"], st.session_state["azim"] = 90, -90
+        st.session_state["elev"], st.session_state["azim"] = 89.99, -90
     if col_b.button("👁️ Side"):
         st.session_state["elev"], st.session_state["azim"] = 0, -90
     col_c, col_d = st.columns(2)
@@ -329,9 +329,9 @@ with tab_perf:
             xaxis_title='Radius r [m]',
             yaxis_title='Advancing x [m]',
             zaxis_title='Height z [m]',
-            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False, showbackground=False),
-            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False, showbackground=False),
-            zaxis=dict(zeroline=False, showgrid=False, showbackground=False),
+            xaxis=dict(range=[0, radius + 0.04], zeroline=False, showgrid=False, showbackground=False, showticklabels=False),
+            yaxis=dict(range=[-max_c, max_c], zeroline=False, showgrid=False, showbackground=False, showticklabels=False),
+            zaxis=dict(zeroline=False, showgrid=False, showbackground=False, showticklabels=False),
             aspectmode='manual',
             aspectratio=dict(x=3.0, y=1.0, z=0.15),
             camera=camera
