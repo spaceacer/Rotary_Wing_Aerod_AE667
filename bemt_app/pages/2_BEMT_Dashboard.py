@@ -235,8 +235,8 @@ with tab_perf:
     ax_aoa.legend(loc="upper right", fontsize=6.5)
 
     # [1, 0] Reynolds Number
-    ax_re.plot(r_norm, res.re_r * 1e-5, color="black", lw=1.8, label=r"Re(r) $\times 10^{-5}$")
-    ax_re.set_ylabel(r"Re $\times 10^{-5}$", fontsize=7.5)
+    ax_re.plot(r_norm, res.re_r * 1e-5, color="black", lw=1.8, label=r"Re(r) $\times 10^5$")
+    ax_re.set_ylabel(r"Re $\times 10^5$", fontsize=7.5)
     re_tip = res.re_r[-1]
     re_mean = np.mean(res.re_r)
     ax_re.set_title(f"Reynolds Distribution (Re_tip = {re_tip:,.0f} | Re_mean = {re_mean:,.0f})", fontsize=8)
