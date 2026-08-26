@@ -48,8 +48,8 @@ st.markdown(
     - Root cut-out R_rc = 0.127 m (5 inches)
     - Chord c = 0.0508 m (2 inches)
     - ρ = 1.225 kg/m³ (sea-level)
-    - RPM = 1 200 rpm
-    - Airfoil: Real NACA 0015 (XFOIL polar)
+    - RPM = 960 rpm
+    - Airfoil: NACA 0015 Analytical Model (a₀=5.75, ε=1.25)
     """
 )
 st.markdown("---")
@@ -59,7 +59,7 @@ with st.sidebar:
     st.header("⚙️  Configuration")
     B_kh = st.selectbox("Blade count (b)", [2, 3, 4, 5], index=0)
     st.markdown(
-        "_Note: Experimental data is available for b = 2 and b = 4._"
+        "_Note: Experimental data is available for all configurations (b = 2, 3, 4, 5)._"
     )
 
 # ── constants ─────────────────────────────────────────────────────────────────
