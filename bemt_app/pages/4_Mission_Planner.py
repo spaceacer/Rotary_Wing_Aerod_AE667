@@ -67,7 +67,7 @@ with st.sidebar:
         payload_mass = st.number_input("Payload [kg]", 0.0, 6000.0, 1440.0, 10.0)
         reserve_fuel = st.number_input("Reserve Fuel [kg]", 50.0, 800.0, 300.0, 10.0)
     
-    with st.expander("Twin Rotors (BEMT)", expanded=True):
+    with st.expander("Tiltrotor (BEMT)", expanded=True):
         num_rotors = 2
         r_rotor = st.slider("Rotor Radius R [m]", 0.5, 8.0, 4.25, 0.1)
         r_root = st.slider("Root Cutout [m]", 0.05, 1.5, 0.45, 0.05)
