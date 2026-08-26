@@ -181,7 +181,7 @@ stall_col = (
 
 hud_cols = st.columns(7)
 hud_cols[0].metric("Thrust", f"{res.thrust:.1f} N")
-hud_cols[1].metric("Power", f"{res.power:.0f} W  ({p_hp:.2f} hp)")
+hud_cols[1].metric("Power", f"{res.power:.0f} W", f"{p_hp:.2f} hp", delta_color="off")
 hud_cols[2].metric("Torque", f"{res.torque:.2f} N·m")
 hud_cols[3].metric("C_T", f"{res.ct:.4f}")
 hud_cols[4].metric("C_P", f"{res.cp:.5f}")
@@ -206,8 +206,8 @@ with tab_perf:
     # Run sweep for performance curves
     sweep_thetas, sweep_cts, sweep_fms = _run_sweep(radius, r_rc, blades, c_root, taper, twist, v_axial, rpm, n_elem, tuple(af_names), tuple(r_stations), ncrit)
     
-    fig_2d = plt.figure(figsize=(11, 10))
-    gs = fig_2d.add_gridspec(4, 2, hspace=0.6, wspace=0.3, left=0.08, right=0.95, top=0.92, bottom=0.06)
+    fig_2d = plt.figure(figsize=(14.0, 9.0), dpi=100)
+    gs = fig_2d.add_gridspec(4, 2, hspace=0.48, wspace=0.25, left=0.07, right=0.96, top=0.94, bottom=0.06)
 
     ax_aoa = fig_2d.add_subplot(gs[0, 0])
     ax_re = fig_2d.add_subplot(gs[1, 0])
@@ -221,8 +221,8 @@ with tab_perf:
 
     _2d_axes = (ax_aoa, ax_re, ax_coeffs, ax_inflow, ax_thrust, ax_power, ax_ct, ax_fm)
     for ax in _2d_axes:
-        ax.tick_params(labelsize=7)
-        ax.grid(True, linestyle=":", alpha=0.35, color="gray")
+        ax.tick_params(labelsize=8)
+        ax.grid(True, linestyle=":", alpha=0.4, color="gray")
 
     # [0, 0] AoA
     ax_aoa.plot(r_norm, deg_alpha, color="blue", lw=1.8, label="α(r)")
@@ -450,19 +450,24 @@ with tab_perf:
     fig_top.tight_layout()
 
     # --------------------------------------------------------------------------
-    # RENDER COLUMNS
+    # 1. UPPER SECTION: 2D ROTOR TOP VIEW & 3D LOFTED BLADE
     # --------------------------------------------------------------------------
-    col_3d, col_2d = st.columns([1.0, 1.4])
-    with col_3d:
-        # Display the 2D Top View and 3D reference blade
-        t1, t2 = st.columns([1, 2])
-        with t1:
-            st.pyplot(fig_top, use_container_width=True)
-            plt.close(fig_top)
+    col_top_view, col_3d_view = st.columns([1.0, 2.2])
+    with col_top_view:
+        st.pyplot(fig_top, use_container_width=True)
+        plt.close(fig_top)
+        st.caption(f"**Rotor Planform:** $R = {radius:.2f}\\,\\mathrm{{m}}$, $R_{{rc}} = {r_rc:.2f}\\,\\mathrm{{m}}$, $b = {blades}$, $\\sigma = {res.solidity:.3f}$")
+    with col_3d_view:
         st.plotly_chart(fig_3d, use_container_width=True)
-    with col_2d:
-        st.pyplot(fig_2d, use_container_width=True)
-        plt.close(fig_2d)
+
+    st.markdown("---")
+
+    # --------------------------------------------------------------------------
+    # 2. LOWER SECTION: 8-PLOT AERODYNAMIC & PERFORMANCE MATRIX
+    # --------------------------------------------------------------------------
+    st.subheader("📊 Aerodynamic Distributions & Performance Matrix")
+    st.pyplot(fig_2d, use_container_width=True)
+    plt.close(fig_2d)
 
 @st.fragment
 def render_station_inspector(af_blend, res, geom, cond, r_norm, deg_alpha, r_rc, radius):
