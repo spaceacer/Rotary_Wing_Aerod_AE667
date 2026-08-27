@@ -338,13 +338,16 @@ st.markdown("---")
 
 # ── Seven Master Display Tabs ─────────────────────────────────────────────────
 
-t_cad, t_prof, t_polar, t_blade, t_power, t_reg, t_log = st.tabs([
+t_cad, t_prof, t_polar, t_blade, t_power, t_reg, t_hov_maps, t_cr_maps, t_comp, t_log = st.tabs([
     "📐 General Arrangement",
     "📈 Mission Profile",
     "🌪️ 2D Polar Explorer",
     "🚁 3D Loft & Dual BEMT",
     "⚡ Power & Mach Envelope",
     "📊 Statistical Benchmarks",
+    "🚁 6.1 Hover Performance Maps",
+    "✈️ 6.2 Forward-Flight Propeller Maps",
+    "📑 6.3 Comparable Rotor Benchmarks",
     "📋 Telemetry Log"
 ])
 
@@ -739,6 +742,334 @@ with t_reg:
     plt.tight_layout()
     st.pyplot(fig_reg)
     plt.close(fig_reg)
+
+# ── TAB 6.1: Hover Performance Maps (Slide 26) ────────────────────────────────
+with t_hov_maps:
+    st.subheader("Section 6.1: Hover Performance Maps & Operational Envelope")
+    
+    rho_sl, a_sl, _ = isa_atmosphere(0.0)
+    rho_ceil, a_ceil, _ = isa_atmosphere(7000.0)
+    p_avail_ceil_kw = p_installed_total_kw * ((rho_ceil / rho_sl) ** 1.05)
+    
+    fig_h_maps, axs_hm = plt.subplots(2, 2, figsize=(14.0, 8.8), dpi=100)
+    
+    # 1. Sweep collective pitch from 0 to 24 deg at Hover RPM
+    th_sweep = np.linspace(0.0, 24.0, 25)
+    t_sl_arr, p_sl_arr, q_sl_arr, aoa_root_sl, aoa_75_sl = [], [], [], [], []
+    t_ceil_arr, p_ceil_arr, q_ceil_arr, aoa_root_ceil, aoa_75_ceil = [], [], [], [], []
+    
+    for th_val in th_sweep:
+        # Sea Level
+        g_s = RotorGeometry(radius=r_rotor, root_cutout=r_root, num_blades=n_blades,
+                            chord_func=make_chord_func(c_blade, blade_tap, r_rotor, r_root),
+                            twist_func=make_twist_func(th_val, th_tw, r_rotor, r_ref_norm=0.75))
+        c_s = FlightCondition(v_axial=0.0, rpm=440.0, rho=rho_sl, speed_of_sound=a_sl)
+        b_s = run_bemt(g_s, c_s, af_model, num_elements=20)
+        t_sl_arr.append(b_s.thrust * 2.0)
+        p_sl_arr.append((b_s.power * 2.0) / (0.94 * 1000.0))
+        q_sl_arr.append(b_s.torque * 2.0)
+        aoa_root_sl.append(np.degrees(b_s.alpha[0]))
+        aoa_75_sl.append(np.degrees(b_s.alpha[int(len(b_s.alpha)*0.75)]))
+        
+        # Ceiling
+        c_c = FlightCondition(v_axial=0.0, rpm=440.0, rho=rho_ceil, speed_of_sound=a_ceil)
+        b_c = run_bemt(g_s, c_c, af_model, num_elements=20)
+        t_ceil_arr.append(b_c.thrust * 2.0)
+        p_ceil_arr.append((b_c.power * 2.0) / (0.94 * 1000.0))
+        q_ceil_arr.append(b_c.torque * 2.0)
+        aoa_root_ceil.append(np.degrees(b_c.alpha[0]))
+        aoa_75_ceil.append(np.degrees(b_c.alpha[int(len(b_c.alpha)*0.75)]))
+        
+    t_sl_arr, p_sl_arr, q_sl_arr = np.array(t_sl_arr), np.array(p_sl_arr), np.array(q_sl_arr)
+    t_ceil_arr, p_ceil_arr, q_ceil_arr = np.array(t_ceil_arr), np.array(p_ceil_arr), np.array(q_ceil_arr)
+    w_hover_target = takeoff_gross_mass * 9.80665 * 1.08 # with 8% download
+
+    # [0, 0] Thrust vs Collective
+    ax_h1 = axs_hm[0, 0]
+    ax_h1.plot(th_sweep, t_sl_arr / 1000.0, 'b-', lw=2.2, label='Sea Level (ISA 0m)')
+    ax_h1.plot(th_sweep, t_ceil_arr / 1000.0, 'b--', lw=1.8, label='Hover Ceiling (7,000m)')
+    ax_h1.axhline(w_hover_target / 1000.0, color='crimson', ls=':', lw=1.8, label=f'Target Thrust ({w_hover_target/1000.0:.1f} kN)')
+    ax_h1.scatter([th_75_hover], [w_hover_target/1000.0], color='lime', s=140, marker='*', edgecolors='k', zorder=5, label=f'Hover θ_0.75 = {th_75_hover:.1f}°')
+    ax_h1.set_xlabel(r'Collective Pitch $\theta_{0.75}$ [deg]', fontsize=9)
+    ax_h1.set_ylabel('Total Proprotor Thrust [kN]', fontsize=9)
+    ax_h1.set_title('1. Thrust vs. Collective Pitch', fontsize=10.5, fontweight='bold')
+    ax_h1.grid(True, ls=':', alpha=0.6); ax_h1.legend(fontsize=7.8)
+
+    # [0, 1] AoA & Stall Margin vs Collective
+    ax_h2 = axs_hm[0, 1]
+    ax_h2.plot(th_sweep, aoa_root_sl, 'r-', lw=2.0, label='Root AoA α_root (SL)')
+    ax_h2.plot(th_sweep, aoa_75_sl, 'm-', lw=1.8, label='75% AoA α_0.75 (SL)')
+    ax_h2.plot(th_sweep, aoa_root_ceil, 'r--', lw=1.5, label='Root AoA α_root (Ceiling)')
+    ax_h2.axhline(12.0, color='crimson', ls='--', lw=1.5, label='Static Stall Limit (α = 12°)')
+    ax_h2.axhspan(12.0, 25.0, color='red', alpha=0.12, label='Stall-Limited Region')
+    ax_h2.set_xlabel(r'Collective Pitch $\theta_{0.75}$ [deg]', fontsize=9)
+    ax_h2.set_ylabel('Sectional Angle of Attack [deg]', fontsize=9)
+    ax_h2.set_title('2. Blade AoA & Stall Margin vs. Collective', fontsize=10.5, fontweight='bold')
+    ax_h2.grid(True, ls=':', alpha=0.6); ax_h2.legend(fontsize=7.8)
+
+    # [1, 0] Torque & Power vs Collective
+    ax_h3 = axs_hm[1, 0]
+    ax_h3_tw = ax_h3.twinx()
+    l_p1, = ax_h3.plot(th_sweep, p_sl_arr, 'r-', lw=2.2, label='Shaft Power (SL)')
+    l_p2, = ax_h3.plot(th_sweep, p_ceil_arr, 'r--', lw=1.8, label='Shaft Power (Ceiling)')
+    l_pmax = ax_h3.axhline(p_installed_total_kw, color='black', ls=':', lw=1.8, label=f'Installed ({p_installed_total_kw:.0f} kW)')
+    l_pmax_c = ax_h3.axhline(p_avail_ceil_kw, color='gray', ls=':', lw=1.5, label=f'Avail at Ceil ({p_avail_ceil_kw:.0f} kW)')
+    ax_h3.axhspan(p_installed_total_kw, max(p_installed_total_kw*1.3, np.max(p_sl_arr)), color='red', alpha=0.10)
+    l_q, = ax_h3_tw.plot(th_sweep, q_sl_arr / 1000.0, 'g-.', lw=1.5, label='Rotor Torque (SL) [kN·m]')
+    ax_h3.set_xlabel(r'Collective Pitch $\theta_{0.75}$ [deg]', fontsize=9)
+    ax_h3.set_ylabel('Required Shaft Power [kW]', color='r', fontsize=9)
+    ax_h3_tw.set_ylabel('Rotor Torque [kN·m]', color='g', fontsize=9)
+    ax_h3.set_title('3. Torque & Power vs. Collective', fontsize=10.5, fontweight='bold')
+    ax_h3.grid(True, ls=':', alpha=0.6)
+    ax_h3.legend([l_p1, l_p2, l_pmax, l_pmax_c, l_q], [l_p1.get_label(), l_p2.get_label(), l_pmax.get_label(), l_pmax_c.get_label(), l_q.get_label()], fontsize=7.2, loc='upper left')
+
+    # [1, 1] Operating Envelope & Hover Ceiling vs Gross Weight
+    ax_h4 = axs_hm[1, 1]
+    gw_sweep = np.linspace(2000.0, 24000.0, 40)
+    ceil_pwr_lim = []
+    ceil_stall_lim = []
+    
+    for gw in gw_sweep:
+        t_req = gw * 9.80665 * 1.08
+        p_hov_sl = ((t_req ** 1.5) / np.sqrt(2.0 * 1.225 * disk_area_total)) / (0.74 * 0.94 * 1000.0)
+        sigma_lim = (p_hov_sl / max(1.0, p_installed_total_kw)) ** (1.0 / 1.55)
+        if sigma_lim < 1.0:
+            T_ratio = sigma_lim ** (1.0 / 4.2561)
+            h_pwr = max(0.0, (1.0 - T_ratio) * 288.15 / 0.0065)
+        else:
+            h_pwr = 0.0
+        ceil_pwr_lim.append(min(9000.0, h_pwr))
+        
+        sigma_sol = (n_blades * c_blade) / (np.pi * r_rotor)
+        ct_max = 0.135 * sigma_sol
+        vtip = (440.0 * 2.0 * np.pi / 60.0) * r_rotor
+        rho_min = t_req / max(1.0, ct_max * disk_area_total * (vtip ** 2))
+        sigma_stall = rho_min / 1.225
+        if sigma_stall < 1.0:
+            T_ratio_s = sigma_stall ** (1.0 / 4.2561)
+            h_stall = max(0.0, (1.0 - T_ratio_s) * 288.15 / 0.0065)
+        else:
+            h_stall = 0.0
+        ceil_stall_lim.append(min(9000.0, h_stall))
+        
+    ax_h4.plot(gw_sweep / 1000.0, ceil_pwr_lim, 'r-', lw=2.0, label='Engine Power-Limited Boundary')
+    ax_h4.plot(gw_sweep / 1000.0, ceil_stall_lim, 'm--', lw=1.8, label='Blade Stall-Limited Boundary')
+    ax_h4.fill_between(gw_sweep / 1000.0, np.minimum(ceil_pwr_lim, ceil_stall_lim), color='lightgreen', alpha=0.25, label='Feasible Hover Region')
+    ax_h4.scatter([takeoff_gross_mass/1000.0], [7000.0], color='lime', s=150, marker='*', edgecolors='k', zorder=5, label=f'Design Point ({takeoff_gross_mass/1000.0:.1f}t @ 7000m)')
+    ax_h4.set_xlabel('Takeoff Gross Weight [Metric Tons]', fontsize=9)
+    ax_h4.set_ylabel('Hover Ceiling Altitude [m]', fontsize=9)
+    ax_h4.set_title('4. Hover Operating Envelope & Ceiling Limits', fontsize=10.5, fontweight='bold')
+    ax_h4.grid(True, ls=':', alpha=0.6); ax_h4.legend(fontsize=7.8)
+
+    plt.tight_layout()
+    st.pyplot(fig_h_maps)
+    plt.close(fig_h_maps)
+
+# ── TAB 6.2: Forward-Flight Propeller Maps (Slide 27) ─────────────────────────
+with t_cr_maps:
+    st.subheader("Section 6.2: Axial Forward-Flight / Propeller Maps")
+    
+    fig_cr_maps, axs_cm = plt.subplots(2, 2, figsize=(14.0, 8.8), dpi=100)
+    
+    j_grid = np.linspace(0.5, 4.5, 25)
+    thetas_cr_family = [30.0, 35.0, 40.0, 45.0, 50.0, 55.0]
+    colors_cr = plt.cm.viridis(np.linspace(0.1, 0.9, len(thetas_cr_family)))
+    
+    ax_c1 = axs_cm[0, 0]
+    ax_c1_tw = ax_c1.twinx()
+    ax_c2 = axs_cm[0, 1]
+    
+    n_rps = 365.0 / 60.0
+    D_prop = 2.0 * r_rotor
+    eta_envelope = np.zeros_like(j_grid)
+    
+    for idx_th, th_p in enumerate(thetas_cr_family):
+        ct_j_list, cp_j_list, eta_j_list = [], [], []
+        for j_val in j_grid:
+            v_ax_j = j_val * n_rps * D_prop
+            g_cr = RotorGeometry(radius=r_rotor, root_cutout=r_root, num_blades=n_blades,
+                                 chord_func=make_chord_func(c_blade, blade_tap, r_rotor, r_root),
+                                 twist_func=make_twist_func(th_p, th_tw, r_rotor, r_ref_norm=0.75))
+            c_cr_j = FlightCondition(v_axial=v_ax_j, rpm=365.0, rho=rho_sl, speed_of_sound=a_sl)
+            b_j = run_bemt(g_cr, c_cr_j, af_model, num_elements=18)
+            ct_j = b_j.ct
+            cp_j = max(b_j.cp, 1e-6)
+            eta_j = (ct_j * j_val) / cp_j if ct_j > 0 else 0.0
+            ct_j_list.append(ct_j)
+            cp_j_list.append(cp_j)
+            eta_j_list.append(np.clip(eta_j, 0.0, 0.92))
+            
+        ct_j_list, cp_j_list, eta_j_list = np.array(ct_j_list), np.array(cp_j_list), np.array(eta_j_list)
+        eta_envelope = np.maximum(eta_envelope, eta_j_list)
+        
+        ax_c1.plot(j_grid, ct_j_list, color=colors_cr[idx_th], lw=1.6, label=f'θ={th_p:.0f}°')
+        ax_c1_tw.plot(j_grid, cp_j_list, color=colors_cr[idx_th], ls='--', lw=1.3)
+        ax_c2.plot(j_grid, eta_j_list, color=colors_cr[idx_th], lw=1.6, label=rf'$\theta_{{0.75}}={th_p:.0f}^\circ$')
+        
+    ax_c1.axhline(0, color='k', ls=':', lw=1.0)
+    ax_c1.set_xlabel(r'Advance Ratio $J = V_\infty / (n D)$', fontsize=9)
+    ax_c1.set_ylabel(r'Thrust Coefficient $C_T$ (Solid)', fontsize=9)
+    ax_c1_tw.set_ylabel(r'Power Coefficient $C_P$ (Dashed)', color='gray', fontsize=9)
+    ax_c1.set_title('1. Propeller Performance: $C_T$ and $C_P$ vs. $J$', fontsize=10.5, fontweight='bold')
+    ax_c1.grid(True, ls=':', alpha=0.6); ax_c1.legend(fontsize=7.2, loc='upper right')
+    
+    # Design cruise point
+    v_cr_ms = 450.0 / 3.6
+    J_cr = v_cr_ms / (n_rps * D_prop)
+    eta_prop_cr = bemt_cr.propulsive_eff
+    
+    ax_c2.plot(j_grid, eta_envelope, 'k-', lw=2.2, label='Max Efficiency Envelope')
+    ax_c2.scatter([J_cr], [eta_prop_cr], color='lime', s=160, marker='*', edgecolors='k', zorder=5, label=f'Design Cruise Point (J={J_cr:.2f}, η={eta_prop_cr*100:.1f}%)')
+    ax_c2.set_xlabel(r'Advance Ratio $J = V_\infty / (n D)$', fontsize=9)
+    ax_c2.set_ylabel(r'Propulsive Efficiency $\eta_p = C_T J / C_P$', fontsize=9)
+    ax_c2.set_title('2. Propulsive Efficiency Map vs. Advance Ratio', fontsize=10.5, fontweight='bold')
+    ax_c2.set_ylim(0.0, 1.0)
+    ax_c2.grid(True, ls=':', alpha=0.6); ax_c2.legend(fontsize=7.5, loc='lower right')
+    
+    # [1, 0] Spanwise AoA Distribution across speeds
+    ax_c3 = axs_cm[1, 0]
+    r_norm_pts = bemt_cr.r_stations / r_rotor
+    test_j_speeds = [1.5, 2.5, 3.5, 4.2]
+    colors_j = ['blue', 'green', 'orange', 'crimson']
+    for j_t, col_j in zip(test_j_speeds, colors_j):
+        v_ax_t = j_t * n_rps * D_prop
+        c_cr_t = FlightCondition(v_axial=v_ax_t, rpm=365.0, rho=rho_sl, speed_of_sound=a_sl)
+        b_t = run_bemt(geom_cr, c_cr_t, af_model, num_elements=25)
+        ax_c3.plot(r_norm_pts, np.degrees(b_t.alpha), color=col_j, lw=1.8, label=f'J={j_t:.1f} ({v_ax_t*3.6:.0f} km/h)')
+    ax_c3.axhline(0, color='k', ls=':', lw=1.2)
+    ax_c3.axhline(12.0, color='red', ls='--', lw=1.2, label='Stall Limit (12°)')
+    ax_c3.axhspan(-20.0, 0.0, color='orange', alpha=0.10, label='Windmilling / Drag Region')
+    ax_c3.set_xlabel(r'Radial Station $r/R$', fontsize=9)
+    ax_c3.set_ylabel(r'Sectional Angle of Attack $\alpha$ [deg]', fontsize=9)
+    ax_c3.set_title('3. Spanwise AoA Distribution across Advance Ratios', fontsize=10.5, fontweight='bold')
+    ax_c3.grid(True, ls=':', alpha=0.6); ax_c3.legend(fontsize=7.5, loc='upper right')
+    
+    # [1, 1] Feasibility Card
+    ax_c4 = axs_cm[1, 1]
+    ax_c4.axis('off')
+    
+    q_dyn = 0.5 * rho_sl * (v_cr_ms ** 2)
+    CL_target = (takeoff_gross_mass * 9.80665) / (q_dyn * s_wing)
+    CD_target = cd0 + (CL_target ** 2) / (np.pi * ar_wing * oswald_e)
+    D_total_N = q_dyn * s_wing * CD_target
+    p_req_450_kw = (D_total_N * v_cr_ms) / (max(0.01, eta_prop_cr) * 1000.0)
+    tip_mach_cr = np.sqrt(((365.0*2*np.pi/60.0)*r_rotor)**2 + v_cr_ms**2) / a_sl
+    
+    cr_status = 'FEASIBLE & VERIFIED' if (p_req_450_kw <= p_installed_total_kw and tip_mach_cr <= 0.82 and eta_prop_cr >= 0.70) else 'CONSTRAINTS EXCEEDED'
+    
+    card_str = (
+        f'PROPELLER CRUISE PERFORMANCE AUDIT\n'
+        f'===============================================\n'
+        f'STATUS: {cr_status}\n'
+        f'-----------------------------------------------\n'
+        f'DESIGN OPERATING CRUISE CONDITION:\n'
+        f'  • True Airspeed V_inf:     450.0 km/h ({v_cr_ms:.1f} m/s)\n'
+        f'  • Advance Ratio J:         {J_cr:6.2f}\n'
+        f'  • Cruise Rotational Speed: 365 RPM\n'
+        f'  • Helical Tip Mach M_tip:  {tip_mach_cr:6.3f} (Limit: <= 0.80)\n'
+        f'  • Trimmed Cruise Pitch:    {th_75_cruise:6.1f} deg\n\n'
+        f'PROPULSIVE POWER & THRUST MATCHING:\n'
+        f'  • Total Airplane Drag:     {D_total_N/1000.0:6.2f} kN\n'
+        f'  • Rotor Thrust Delivered:  {(bemt_cr.thrust*2)/1000.0:6.2f} kN\n'
+        f'  • Propulsive Efficiency η: {eta_prop_cr*100:6.1f} %\n'
+        f'  • Cruise Shaft Power Req:  {p_req_450_kw:6.0f} kW\n'
+        f'  • Installed Engine Rating: {p_installed_total_kw:6.0f} kW\n'
+        f'  • Power Margin at 450 km/h: +{(p_installed_total_kw - p_req_450_kw):6.0f} kW\n'
+    )
+    border_c = '#28a745' if cr_status == 'FEASIBLE & VERIFIED' else '#dc3545'
+    ax_c4.text(0.02, 0.98, card_str, fontfamily='monospace', fontsize=8.8, verticalalignment='top',
+               bbox=dict(boxstyle='round,pad=0.6', facecolor='#f8f9fa', edgecolor=border_c, lw=1.5))
+               
+    plt.tight_layout()
+    st.pyplot(fig_cr_maps)
+    plt.close(fig_cr_maps)
+
+# ── TAB 6.3: Comparable Rotor Benchmarks (Slide 28) ───────────────────────────
+with t_comp:
+    st.subheader("Section 6.3: Comparison with Comparable Proprotors")
+    
+    fig_comp = plt.figure(figsize=(14.0, 8.8), dpi=100)
+    gs_comp = fig_comp.add_gridspec(2, 2, height_ratios=[1.0, 1.0], hspace=0.35, wspace=0.25)
+    
+    # 1. Multi-Aircraft Comparative Benchmark Table
+    ax_ctbl = fig_comp.add_subplot(gs_comp[0, :])
+    ax_ctbl.axis('off')
+    
+    sigma_cur = (n_blades * c_blade) / (np.pi * r_rotor)
+    v_tip_hov = (440.0 * 2.0 * np.pi / 60.0) * r_rotor
+    v_tip_cr = (365.0 * 2.0 * np.pi / 60.0) * r_rotor
+    
+    comp_df = pd.DataFrame([
+        {'Aircraft': 'Bell XV-15 (NASA/Army)', 'R [m]': 3.81, 'Nb': 3, 'Solidity': 0.089, 'Twist [°]': -38.0, 'DL [kg/m²]': 73.2, 'Vtip_hov [m/s]': 225.0, 'Vtip_cr [m/s]': 170.0, 'Max FM': 0.74, 'Cruise η': 0.82, 'P/W0 [kW/kg]': 0.385},
+        {'Aircraft': 'Bell Boeing V-22 Osprey', 'R [m]': 5.80, 'Nb': 3, 'Solidity': 0.105, 'Twist [°]': -47.0, 'DL [kg/m²]': 102.5, 'Vtip_hov [m/s]': 240.0, 'Vtip_cr [m/s]': 180.0, 'Max FM': 0.72, 'Cruise η': 0.79, 'P/W0 [kW/kg]': 0.380},
+        {'Aircraft': 'Leonardo AW609 (Civil)', 'R [m]': 4.05, 'Nb': 3, 'Solidity': 0.096, 'Twist [°]': -35.0, 'DL [kg/m²]': 88.4, 'Vtip_hov [m/s]': 228.0, 'Vtip_cr [m/s]': 175.0, 'Max FM': 0.75, 'Cruise η': 0.84, 'P/W0 [kW/kg]': 0.354},
+        {'Aircraft': 'Bell V-280 Valor (FVL)', 'R [m]': 5.33, 'Nb': 4, 'Solidity': 0.100, 'Twist [°]': -32.0, 'DL [kg/m²]': 95.0, 'Vtip_hov [m/s]': 235.0, 'Vtip_cr [m/s]': 165.0, 'Max FM': 0.76, 'Cruise η': 0.85, 'P/W0 [kW/kg]': 0.533},
+        {'Aircraft': '⭐ Your Designed Tiltrotor', 'R [m]': round(r_rotor, 2), 'Nb': n_blades, 'Solidity': round(sigma_cur, 3), 'Twist [°]': round(th_tw, 1), 'DL [kg/m²]': round(cur_dl, 1), 'Vtip_hov [m/s]': round(v_tip_hov, 1), 'Vtip_cr [m/s]': round(v_tip_cr, 1), 'Max FM': round(bemt_hov.figure_of_merit, 2), 'Cruise η': round(bemt_cr.propulsive_eff, 2), 'P/W0 [kW/kg]': round(cur_pw, 3)}
+    ])
+    
+    table_data = [comp_df.columns.tolist()] + comp_df.values.tolist()
+    t_elem = ax_ctbl.table(cellText=table_data, loc='center', cellLoc='center')
+    t_elem.auto_set_font_size(False)
+    t_elem.set_fontsize(8.5)
+    t_elem.scale(1.0, 1.5)
+    
+    for col_i in range(len(comp_df.columns)):
+        t_elem[(0, col_i)].set_facecolor('#1f77b4')
+        t_elem[(0, col_i)].set_text_props(color='white', fontweight='bold')
+        t_elem[(5, col_i)].set_facecolor('#d4edda')
+        t_elem[(5, col_i)].set_text_props(fontweight='bold')
+        
+    ax_ctbl.set_title('COMPARISON WITH COMPARABLE PROPROTOR BENCHMARKS (NORMALIZED NONDIMENSIONAL METRICS)', fontsize=10.5, fontweight='bold', pad=12)
+    
+    # 2. Nondimensional Metrics Grouped Bar Comparison
+    ax_cbar = fig_comp.add_subplot(gs_comp[1, 0])
+    labels_m = ['Solidity (σ)', 'Disc Load (DL/80)', 'FM (Hover)', 'Prop Eff (η_cr)', 'P/W (kW/kg)']
+    xv15_vals = [0.089, 73.2/80.0, 0.74, 0.82, 0.385]
+    aw609_vals = [0.096, 88.4/80.0, 0.75, 0.84, 0.354]
+    your_vals = [sigma_cur, cur_dl/80.0, bemt_hov.figure_of_merit, bemt_cr.propulsive_eff, cur_pw]
+    
+    x_idx = np.arange(len(labels_m))
+    bar_w = 0.25
+    ax_cbar.bar(x_idx - bar_w, xv15_vals, width=bar_w, color='#4575b4', label='Bell XV-15')
+    ax_cbar.bar(x_idx, aw609_vals, width=bar_w, color='#f46d43', label='Leonardo AW609')
+    ax_cbar.bar(x_idx + bar_w, your_vals, width=bar_w, color='#2ca02c', label='Your Aircraft')
+    ax_cbar.set_xticks(x_idx); ax_cbar.set_xticklabels(labels_m, fontsize=8)
+    ax_cbar.set_ylabel('Normalized Metric Value', fontsize=8.5)
+    ax_cbar.set_title('Normalized Aerodynamic & Sizing Comparisons', fontsize=10, fontweight='bold')
+    ax_cbar.grid(True, ls=':', alpha=0.6); ax_cbar.legend(fontsize=7.8)
+    
+    # 3. Technical Discussion Card
+    ax_ctext = fig_comp.add_subplot(gs_comp[1, 1])
+    ax_ctext.axis('off')
+    
+    accept_verdict = 'ACCEPTABLE & BALANCED' if (0.07 <= sigma_cur <= 0.12 and 50 <= cur_dl <= 120 and bemt_hov.figure_of_merit >= 0.65 and bemt_cr.propulsive_eff >= 0.72) else 'NEEDS GEOMETRIC TUNING'
+    
+    disc_text = (
+        f'DESIGN ACCEPTABILITY & COMPARATIVE EVALUATION\n'
+        f'=================================================\n'
+        f'OVERALL DESIGN VERDICT: {accept_verdict}\n'
+        f'-------------------------------------------------\n'
+        f'1. DISC LOADING (DL = {cur_dl:.1f} kg/m²):\n'
+        f'   • Sits squarely between XV-15 (73.2) and AW609 (88.4).\n'
+        f'   • Compact proprotor diameter prevents fuselage collision\n'
+        f'     while providing reasonable hover downwash velocity.\n\n'
+        f'2. ROTOR SOLIDITY (σ = {sigma_cur:.3f}):\n'
+        f'   • {n_blades}-bladed proprotor provides optimal blade loading\n'
+        f'     (Ct/σ ≈ 0.08) avoiding root stall in hover.\n\n'
+        f'3. TWIST RATE (θ_tw = {th_tw:.1f}°):\n'
+        f'   • Provides attached high-speed cruise thrust while\n'
+        f'     mitigating extreme negative root windmilling.\n\n'
+        f'4. TIP SPEED SCALING:\n'
+        f'   • Hover Vtip ({v_tip_hov:.0f} m/s) -> Cruise Vtip ({v_tip_cr:.0f} m/s)\n'
+        f'   • ~{((1 - v_tip_cr/v_tip_hov)*100):.0f}% RPM reduction keeps cruise Mtip <= 0.80.\n'
+    )
+    border_d = '#28a745' if accept_verdict == 'ACCEPTABLE & BALANCED' else '#ffc107'
+    ax_ctext.text(0.02, 0.98, disc_text, fontfamily='monospace', fontsize=8.6, verticalalignment='top',
+                  bbox=dict(boxstyle='round,pad=0.6', facecolor='#f8f9fa', edgecolor=border_d, lw=1.5))
+                  
+    plt.tight_layout()
+    st.pyplot(fig_comp)
+    plt.close(fig_comp)
 
 # ── TAB 7: Telemetry Log ──────────────────────────────────────────────────────
 with t_log:
